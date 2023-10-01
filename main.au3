@@ -34,7 +34,7 @@ Local $sTheDictionaryUrl = "https://raw.githubusercontent.com/Pituchey-Hotam/The
 Local $sMasterRegistryPath = "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Shared Tools\Proofing Tools\1.0\Custom Dictionaries"
 Local $sConfigDirPath = @AppDataDir & "\PitucheyHotam"
 Local $sFilePath = $sConfigDirPath & "\מילון הבייניש הגדול - מאת פיתוחי חותם.dic"
-Local $sConfigPath = $sConfigDirPath & "\condig.TBBD.ini"
+Local $sConfigPath = $sConfigDirPath & "\config.TBBD.ini"
 
 Local $sOriginalFileVersion = IniRead($sConfigPath, "General", "current_version", "0.0.0")
 Local $sServerFileVersion = _INetGetSource($sServerVersionUrl)
