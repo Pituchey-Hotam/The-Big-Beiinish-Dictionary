@@ -118,7 +118,6 @@ l_cleanup:
 
 tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
-	WCHAR ErrorMessage[50] = { 0 };
 	WNDCLASS wc = { 0 };
 	HWND MainWindowHandle = NULL;
 	HMENU hMenu = NULL;
@@ -202,11 +201,6 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
-	if (TBBD_STATUS_SUCCESS != status) {
-		wsprintfW(ErrorMessage, L"מספר שגיאה: %d\nאנא פנה לתמיכה.", (int)status);
-		MessageBoxW(NULL, ErrorMessage, L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
-	}
-
 	if (NULL != wc.hInstance) {
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
 	}
