@@ -297,8 +297,13 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
 	if (TBBD_STATUS_SUCCESS != status) {
-		wsprintfW(ErrorMessage, L"מספר שגיאה: %d\nאנא פנה לתמיכה.", (int)status);
-		MessageBoxW(NULL, ErrorMessage, L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
+		if (TBBD_STATUS_URLDOWNLOADTOFILEW_FAILED == status) {
+			MessageBoxW(NULL, L"תוכנת מילון הבייניש הגדול דורשת חיבור לאינטרנט כדי לפעול", L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
+		}
+		else {
+			wsprintfW(ErrorMessage, L"מספר שגיאה: %d\nאנא פנה לתמיכה.", (int)status);
+			MessageBoxW(NULL, ErrorMessage, L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
+		}
 		PostQuitMessage((int)status);
 	}
 
@@ -428,7 +433,7 @@ tbbd_status_t TBBD::Install() {
 	std::wsmatch match;
 	LSTATUS win_status = -1;
 	BOOL regex_found = FALSE;
-	DWORD maxId = 0;
+	INT maxId = 0;
 	std::wstring registryName = L"";
 	std::wstring registryPrefix = L"";
 	BYTE tmpValue = 0;
@@ -467,10 +472,12 @@ tbbd_status_t TBBD::Install() {
 					maxId = std::stoi(match[1]);
 				}
 				catch (const std::invalid_argument& e) {
+					(void)e;
 					status = TBBD_STATUS_STOI_INVALID_ARGUMENT;
 					goto l_cleanup;
 				}
 				catch (const std::out_of_range& e) {
+					(void)e;
 					status = TBBD_STATUS_STOI_OUT_OF_RANGE;
 					goto l_cleanup;
 				}
@@ -515,7 +522,7 @@ tbbd_status_t TBBD::Install() {
 		}
 		s = std::to_wstring(maxId);
 		tmpPointer = s.c_str();
-		if (ERROR_SUCCESS != RegSetValueExW(hKey, L"PitucheyHotem_TBBD_ID", 0, REG_SZ, (const BYTE*)(tmpPointer), (s.length() + 1))) {
+		if (ERROR_SUCCESS != RegSetValueExW(hKey, L"PitucheyHotem_TBBD_ID", 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)(s.length() + 1))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
 			goto l_cleanup;
 		}
@@ -596,10 +603,12 @@ tbbd_status_t TBBD::UnInstall() {
 		TBBD_id = std::stoi(registryValus);
 	}
 	catch (const std::invalid_argument& e) {
+		(void)e;
 		status = TBBD_STATUS_STOI_INVALID_ARGUMENT;
 		goto l_cleanup;
 	}
 	catch (const std::out_of_range& e) {
+		(void)e;
 		status = TBBD_STATUS_STOI_OUT_OF_RANGE;
 		goto l_cleanup;
 	}
