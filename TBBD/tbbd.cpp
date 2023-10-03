@@ -427,7 +427,7 @@ tbbd_status_t TBBD::Install() {
 	WCHAR keyName[MAX_PATH] = { 0 };
 	DWORD keyNameSize = MAX_PATH;
 	std::wstring s = L"";
-	std::wregex words_regex(L"^(\\d+)_(.+)_state$");
+	std::wregex words_regex(L"^(\\d+)_(.+)_ADAL_state$");
 	std::wsregex_iterator words_begin;
 	std::wsregex_iterator words_end;
 	std::wsmatch match;
@@ -494,6 +494,7 @@ tbbd_status_t TBBD::Install() {
 	if (regex_found) {
 		++maxId;
 		registryPrefix = std::to_wstring(maxId) + L"_" + registryName;
+		registryPrefix += L"_ADAL";
 
 		if (ERROR_SUCCESS != RegSetValueExW(hKey, (registryPrefix).c_str(), 0, REG_SZ, (const BYTE*)this->TBBDFilePath, sizeof(this->TBBDFilePath))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
@@ -520,9 +521,9 @@ tbbd_status_t TBBD::Install() {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
 			goto l_cleanup;
 		}
-		s = std::to_wstring(maxId);
+		s = registryPrefix;
 		tmpPointer = s.c_str();
-		if (ERROR_SUCCESS != RegSetValueExW(hKey, L"PitucheyHotem_TBBD_ID", 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)(s.length() + 1))) {
+		if (ERROR_SUCCESS != RegSetValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)((s.length() + 1) * sizeof(WCHAR)))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
 			goto l_cleanup;
 		}
@@ -555,14 +556,6 @@ tbbd_status_t TBBD::UnInstall() {
 	DWORD index = 0;
 	WCHAR registryValus[MAX_PATH] = { 0 };
 	DWORD registryValusSize = MAX_PATH;
-	std::wstring s = L"";
-	std::wregex words_regex(L"^(\\d+)_(.+)_state$");
-	std::wsregex_iterator words_begin;
-	std::wsregex_iterator words_end;
-	std::wsmatch match;
-	LSTATUS win_status = -1;
-	DWORD TBBD_id = 0;
-	std::wstring registryName = L"";
 	std::wstring registryPrefix = L"";
 
 	if (ERROR_SUCCESS != RegOpenKeyExW(HKEY_CURRENT_USER, MASTER_REGISTRY_PATH, 0, KEY_READ | KEY_WRITE, &hKey)) {
@@ -570,53 +563,15 @@ tbbd_status_t TBBD::UnInstall() {
 		goto l_cleanup;
 	}
 
-	while (TRUE) {
-		registryValusSize = MAX_PATH;
-		win_status = RegEnumValueW(hKey, index, registryValus, &registryValusSize, NULL, NULL, NULL, NULL);
-		if (win_status == ERROR_NO_MORE_ITEMS) {
-			break;
-		}
-		else if (win_status != ERROR_SUCCESS) {
-			status = TBBD_STATUS_REGENUMKEYEXW_ERROR;
-			goto l_cleanup;
-		}
-
-		s = registryValus;
-		words_begin = std::wsregex_iterator(s.begin(), s.end(), words_regex);
-		words_end = std::wsregex_iterator();
-
-		if (0 < std::distance(words_begin, words_end)) {
-			match = *words_begin;
-			registryName = match[2].str();
-			break;
-		}
-
-		index++;
-	}
-
-	if (ERROR_SUCCESS != RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_ID", nullptr, nullptr, reinterpret_cast<LPBYTE>(registryValus), &registryValusSize)) {
+	registryValusSize = MAX_PATH;
+	if (ERROR_SUCCESS != RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(registryValus), &registryValusSize)) {
 		status = TBBD_STATUS_REGQUERYVALUEEXW_ERROR;
 		goto l_cleanup;
 	}
 
-	try {
-		TBBD_id = std::stoi(registryValus);
-	}
-	catch (const std::invalid_argument& e) {
-		(void)e;
-		status = TBBD_STATUS_STOI_INVALID_ARGUMENT;
-		goto l_cleanup;
-	}
-	catch (const std::out_of_range& e) {
-		(void)e;
-		status = TBBD_STATUS_STOI_OUT_OF_RANGE;
-		goto l_cleanup;
-	}
-	
-	registryPrefix = std::to_wstring(TBBD_id) + L"_" + registryName;
+	registryPrefix = registryValus;
 
-	win_status = RegDeleteValueW(hKey, (registryPrefix).c_str());
-	if (ERROR_SUCCESS != win_status) {
+	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix).c_str())) {
 		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
 		goto l_cleanup;
 	}
@@ -637,7 +592,7 @@ tbbd_status_t TBBD::UnInstall() {
 		goto l_cleanup;
 	}
 
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, L"PitucheyHotem_TBBD_ID")) {
+	if (ERROR_SUCCESS != RegDeleteValueW(hKey, L"PitucheyHotem_TBBD_Prefix")) {
 		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
 		goto l_cleanup;
 	}
@@ -716,7 +671,7 @@ l_cleanup:
 tbbd_status_t TBBD::CheckIfInstalled(BOOL& installed) {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	HKEY hKey = NULL;
-	CHAR id[10] = { 0 };
+	CHAR id[MAX_PATH] = { 0 };
 	DWORD size = sizeof(id);
 	LSTATUS res = 0;
 
@@ -725,7 +680,7 @@ tbbd_status_t TBBD::CheckIfInstalled(BOOL& installed) {
 		goto l_cleanup;
 	}
 
-	res = RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_ID", nullptr, nullptr, reinterpret_cast<LPBYTE>(id), &size);
+	res = RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(id), &size);
 
 	if (ERROR_SUCCESS == res) {
 		installed = TRUE;
