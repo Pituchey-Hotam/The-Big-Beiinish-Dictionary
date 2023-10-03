@@ -528,6 +528,15 @@ tbbd_status_t TBBD::Install() {
 			goto l_cleanup;
 		}
 
+		status = InstallExeToAppdata();
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
+		status = InstallScheduleTask();
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
+
 		memcpy(this->CurrentVersion, this->ServerVersion, (size_t)((VERSION_STRING_LENGTH) / sizeof(WCHAR)) + 1);
 		memcpy(this->CurrentLastUpdateDate, this->ServerLastUpdateDate, (size_t)((LAST_UPDATE_DATE_STRING_LENGTH) / sizeof(WCHAR)) + 1);
 
@@ -540,6 +549,10 @@ tbbd_status_t TBBD::Install() {
 			goto l_cleanup;
 		}
 	}
+	else {
+		status = TBBD_STATUS_REGEX_NOT_FOUND;
+		goto l_cleanup;
+	}
 
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
@@ -547,6 +560,123 @@ l_cleanup:
 		RegCloseKey(hKey);
 	}
 
+	return status;
+}
+
+tbbd_status_t TBBD::InstallScheduleTask() {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+
+	HMODULE hModule = NULL;
+	HRSRC hResource = NULL;
+	HGLOBAL hResourceData = NULL;
+	PWCHAR pData = NULL;
+	DWORD dwSize = 0;
+	WCHAR tempPath[MAX_PATH] = { 0 };
+	DWORD tempPathLength = 0;
+	std::wstring outputFileFullPath = L"";
+	HANDLE hFile = INVALID_HANDLE_VALUE;
+	DWORD bytesWritten;
+	std::wstring command = L"schtasks.exe /create /tn \"PitucheyHotam_TBBD_Update\" /xml ";
+	STARTUPINFO si = { 0 };
+	PROCESS_INFORMATION pi = { 0 };
+
+	hModule = GetModuleHandleW(NULL);
+	if (NULL == hModule) {
+		status = TBBD_STATUS_GETMODULEHANDLEW_FAILED;
+		goto l_cleanup;
+	}
+
+	hResource = FindResourceW(hModule, MAKEINTRESOURCE(IDR_UPDATE_TASK_XML), RT_RCDATA);
+	if (NULL == hResource) {
+		status = TBBD_STATUS_FINDRESOURCEW_FAILED;
+		goto l_cleanup;
+	}
+
+	hResourceData = LoadResource(hModule, hResource);
+	if (NULL == hResourceData) {
+		status = TBBD_STATUS_LOADRESOURCE_FAILED;
+		goto l_cleanup;
+	}
+
+	pData = (PWCHAR)LockResource(hResourceData);
+	dwSize = SizeofResource(hModule, hResource);
+
+	tempPathLength = GetTempPathW(MAX_PATH, tempPath);
+	if (0 == tempPathLength || MAX_PATH < tempPathLength) {
+		status = TBBD_STATUS_BAD_TEMP_PATH;
+		goto l_cleanup;
+	}
+
+	outputFileFullPath = tempPath;
+	outputFileFullPath += L"TBBD-UpdateTaskTempFile.xml";
+
+	hFile = CreateFileW(outputFileFullPath.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (INVALID_HANDLE_VALUE == hFile) {
+		status = TBBD_STATUS_CREATEFILEW_FAILED;
+		goto l_cleanup;
+	}
+
+	if (!WriteFile(hFile, (PVOID)pData, dwSize, &bytesWritten, NULL)) {
+		status = TBBD_STATUS_WRITEFILE_FAILED;
+		goto l_cleanup;
+	}
+
+	if (dwSize != bytesWritten) {
+		status = TBBD_STATUS_ERROR_ON_WRITE_TO_THE_FILE;
+		goto l_cleanup;
+	}
+
+	CloseHandle(hFile);
+	hFile = INVALID_HANDLE_VALUE;
+
+
+	command += L"\"" + outputFileFullPath + L"\"";
+	si.cb = sizeof(STARTUPINFO);
+
+	if (CreateProcessW(NULL, (LPWSTR)command.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	else {
+		status = TBBD_STATUS_CREATEPROCESSW_FAILED;
+		goto l_cleanup;
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
+	if (INVALID_HANDLE_VALUE != hFile) {
+		CloseHandle(hFile);
+	}
+
+	return status;
+}
+
+tbbd_status_t TBBD::InstallExeToAppdata() {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	wchar_t exePath[MAX_PATH] = { 0 };
+	wchar_t appDataPath[MAX_PATH] = { 0 };
+
+	if (0 == GetModuleFileNameW(NULL, exePath, MAX_PATH)) {
+		status = TBBD_STATUS_GETMODULEFILENAMEW_FAILED;
+		goto l_cleanup;
+	}
+	
+	if (SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appDataPath) != S_OK) {
+		status = TBBD_STATUS_SHGETFOLDERPATHW_FAILED;
+		goto l_cleanup;
+	}
+
+	wcscat_s(appDataPath, MAX_PATH, L"\\PitucheyHotam\\tbbd.exe");
+
+	if (!CopyFileW(exePath, appDataPath, FALSE)) {
+		status = TBBD_STATUS_COPYFILEW_FAILED;
+		goto l_cleanup;
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
 	return status;
 }
 
@@ -627,12 +757,72 @@ tbbd_status_t TBBD::UnInstall() {
 		}
 	}
 
+	status = UnInstallScheduleTask();
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+	status = UnInstallExeFromAppdata();
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
 	if (NULL != hKey) {
 		RegCloseKey(hKey);
 	}
 
+	return status;
+}
+
+tbbd_status_t TBBD::UnInstallScheduleTask() {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	STARTUPINFO si = { 0 };
+	PROCESS_INFORMATION pi = { 0 };
+	std::wstring command = L"schtasks.exe /delete /tn \"PitucheyHotam_TBBD_Update\"";
+
+	si.cb = sizeof(STARTUPINFO);
+
+	if (CreateProcessW(NULL, (LPWSTR)command.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+		WaitForSingleObject(pi.hProcess, INFINITE);
+
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+	else {
+		status = TBBD_STATUS_CREATEPROCESSW_FAILED;
+		goto l_cleanup;
+	}
+	
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
+	return status;
+}
+
+tbbd_status_t TBBD::UnInstallExeFromAppdata() {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	wchar_t exePath[MAX_PATH] = { 0 };
+	wchar_t appDataPath[MAX_PATH] = { 0 };
+
+	if (0 == GetModuleFileNameW(NULL, exePath, MAX_PATH)) {
+		status = TBBD_STATUS_GETMODULEFILENAMEW_FAILED;
+		goto l_cleanup;
+	}
+
+	if (SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appDataPath) != S_OK) {
+		status = TBBD_STATUS_SHGETFOLDERPATHW_FAILED;
+		goto l_cleanup;
+	}
+
+	wcscat_s(appDataPath, MAX_PATH, L"\\PitucheyHotam\\tbbd.exe");
+
+	if (!DeleteFileW(appDataPath)) {
+		status = TBBD_STATUS_DELETEFILEW_FAILED;
+		goto l_cleanup;
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
 	return status;
 }
 
@@ -699,6 +889,35 @@ l_cleanup:
 	if (NULL != hKey) {
 		RegCloseKey(hKey);
 	}
+
+	return status;
+}
+
+tbbd_status_t TBBD::checkForUpdates() {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+
+	if (softwareInstalled) {
+		if (compareVersionStrings(this->ServerVersion, this->CurrentVersion) == CSTR_GREATER_THAN) {
+			status = Update();
+			if (TBBD_STATUS_SUCCESS != status) {
+				goto l_cleanup;
+			}
+			// MessageBoxW(NULL, L"המילון עודכן בהצלחה!", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION);
+		}
+	}
+	else {
+		status = UnInstallScheduleTask();
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
+		status = UnInstallExeFromAppdata();
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
 
 	return status;
 }

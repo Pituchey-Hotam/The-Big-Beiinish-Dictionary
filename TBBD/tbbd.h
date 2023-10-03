@@ -21,9 +21,16 @@ public:
 		return instance;
 	}
 
-	LRESULT CALLBACK CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	tbbd_status_t init();
 	tbbd_status_t run(HINSTANCE hInstance, int nCmdShow);
+	tbbd_status_t checkForUpdates();
+	LRESULT CALLBACK CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	TBBD(const TBBD&) = delete;
+	TBBD& operator=(const TBBD&) = delete;
+private:
+	TBBD();
+
 	tbbd_status_t GetServerVersion(LPWSTR CurrentVersion, DWORD size);
 	tbbd_status_t GetCurrentVersion(LPWSTR CurrentVersion, DWORD size);
 	tbbd_status_t SetCurrentVersion(LPCWSTR CurrentVersion);
@@ -32,13 +39,12 @@ public:
 	tbbd_status_t SetLastUpdateHebDate(LPCWSTR LastUpdateHebDate);
 	tbbd_status_t CheckIfInstalled(BOOL& installed);
 	tbbd_status_t Install();
+	tbbd_status_t InstallExeToAppdata();
+	tbbd_status_t InstallScheduleTask();
 	tbbd_status_t UnInstall();
+	tbbd_status_t UnInstallExeFromAppdata();
+	tbbd_status_t UnInstallScheduleTask();
 	tbbd_status_t Update();
-
-	TBBD(const TBBD&) = delete;
-	TBBD& operator=(const TBBD&) = delete;
-private:
-	TBBD();
 
 	WCHAR ServerVersion[VERSION_STRING_LENGTH];
 	WCHAR CurrentVersion[VERSION_STRING_LENGTH];
