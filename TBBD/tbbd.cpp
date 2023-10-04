@@ -7,6 +7,7 @@
  *********************************************************************/
 
 #include <Windows.h>
+#include <strsafe.h>
 #include <shlobj.h>
 #include <urlmon.h>
 #include <regex>
@@ -28,7 +29,7 @@ LRESULT CALLBACK GlobalCallbackHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 }
 
 TBBD::TBBD() :
-	ChangeStatusBotton(NULL), RefrashBotton(NULL), versionLable(NULL), lastUpdateDateLable(NULL), statusLable(NULL),
+	ChangeStatusBotton(NULL), RefrashBotton(NULL), versionLabel(NULL), lastUpdateDateLabel(NULL), statusLabel(NULL),
 	ServerVersion(L""), CurrentVersion(L""), ServerLastUpdateDate(L""), CurrentLastUpdateDate(L""),
 	ConfigFilePath(L""), TBBDFilePath(L""), softwareInstalled(FALSE)
 {}
@@ -176,23 +177,24 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 
 	ChangeStatusBotton = MyCreateButton(hInstance, MainWindowHandle, L"התקן את המילון", 120, 25, 130, 50);
 	RefrashBotton = MyCreateButton(hInstance, MainWindowHandle, L"עדכון את המילון", 250, 44, 130, 30, false);
-	versionLable = MyCreateLable(hInstance, MainWindowHandle, L"0.0.0", 290, 85, 300, 20);
-	lastUpdateDateLable = MyCreateLable(hInstance, MainWindowHandle, L"<התוכנה לא\nהותקנה>", 10, 45, 110, 40);
-	statusLable = MyCreateLable(hInstance, MainWindowHandle, L"סטטוס: לא מותקן", 135, 2, 100, 20);
-	(void)MyCreateLable(hInstance, MainWindowHandle, L"בס\"ד", 5, 2, 30, 20);
-	(void)MyCreateLable(hInstance, MainWindowHandle, L"תאריך העדכון:", 10, 25, 100, 20);
-	(void)MyCreateLable(hInstance, MainWindowHandle, L"מילון הבייניש הגדול מאת פיתוחי חותם - גרסה", 30, 85, 260, 20);
-	(void)MyCreateLable(hInstance, MainWindowHandle, L"מייל תמיכה: pituchey-hotam@yehudae.net", 50, 100, 300, 20);
+	versionLabel = MyCreateLabel(hInstance, MainWindowHandle, L"0.0.0", 290, 85, 300, 20);
+	lastUpdateDateLabel = MyCreateLabel(hInstance, MainWindowHandle, L"<התוכנה לא\nהותקנה>", 10, 45, 110, 40);
+	statusLabel = MyCreateLabel(hInstance, MainWindowHandle, L"סטטוס: לא מותקן", 135, 2, 100, 20);
+	(void)MyCreateLabel(hInstance, MainWindowHandle, L"בס\"ד", 5, 2, 30, 20);
+	(void)MyCreateLabel(hInstance, MainWindowHandle, L"תאריך העדכון:", 10, 25, 100, 20);
+	(void)MyCreateLabel(hInstance, MainWindowHandle, L"מילון הבייניש הגדול מאת פיתוחי חותם - גרסה", 30, 85, 260, 20);
+	(void)MyCreateLabel(hInstance, MainWindowHandle, L"מייל תמיכה: pituchey-hotam@yehudae.net", 50, 100, 300, 20);
 
 	if (softwareInstalled) {
-		SetWindowTextW(statusLable, L"סטטוס: מותקן");
+		SetWindowTextW(statusLabel, L"סטטוס: מותקן");
 		SetWindowTextW(ChangeStatusBotton, L"הסר את המילון");
-		SetWindowTextW(versionLable, this->CurrentVersion);
-		SetWindowTextW(lastUpdateDateLable, this->CurrentLastUpdateDate);
+		SetWindowTextW(versionLabel, this->CurrentVersion);
+		SetWindowTextW(lastUpdateDateLabel, this->CurrentLastUpdateDate);
 		ShowWindow(RefrashBotton, SW_SHOW);
 	}
 
 	ShowWindow(MainWindowHandle, nCmdShow);
+	UpdateWindow(MainWindowHandle);
 
 	while (GetMessageW(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);
@@ -226,10 +228,10 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 				if (TBBD_STATUS_SUCCESS != status) {
 					goto l_cleanup;
 				}
-				SetWindowTextW(statusLable, L"סטטוס: לא מותקן");
+				SetWindowTextW(statusLabel, L"סטטוס: לא מותקן");
 				SetWindowTextW(ChangeStatusBotton, L"התקן את המילון");
-				SetWindowTextW(versionLable, L"0.0.0");
-				SetWindowTextW(lastUpdateDateLable, L"<התוכנה לא\nהותקנה>");
+				SetWindowTextW(versionLabel, L"0.0.0");
+				SetWindowTextW(lastUpdateDateLabel, L"<התוכנה לא\nהותקנה>");
 				ShowWindow(RefrashBotton, SW_HIDE);
 
 				softwareInstalled = FALSE;
@@ -239,10 +241,10 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 				if (TBBD_STATUS_SUCCESS != status) {
 					goto l_cleanup;
 				}
-				SetWindowTextW(statusLable, L"סטטוס: מותקן");
+				SetWindowTextW(statusLabel, L"סטטוס: מותקן");
 				SetWindowTextW(ChangeStatusBotton, L"הסר את המילון");
-				SetWindowTextW(versionLable, this->CurrentVersion);
-				SetWindowTextW(lastUpdateDateLable, this->CurrentLastUpdateDate);
+				SetWindowTextW(versionLabel, this->CurrentVersion);
+				SetWindowTextW(lastUpdateDateLabel, this->CurrentLastUpdateDate);
 				ShowWindow(RefrashBotton, SW_SHOW);
 
 				softwareInstalled = TRUE;
@@ -254,13 +256,16 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 				if (TBBD_STATUS_SUCCESS != status) {
 					goto l_cleanup;
 				}
-				SetWindowTextW(versionLable, this->CurrentVersion);
-				SetWindowTextW(lastUpdateDateLable, this->CurrentLastUpdateDate);
-				MessageBoxW(hwnd, L"המילון עודכן בהצלחה!", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION);
+				SetWindowTextW(versionLabel, this->CurrentVersion);
+				SetWindowTextW(lastUpdateDateLabel, this->CurrentLastUpdateDate);
+				MessageBoxW(hwnd, L"המילון עודכן בהצלחה!", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION | MB_RTLREADING);
 			}
 			else {
-				MessageBoxW(hwnd, L"אין עדכונים חדשים...", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION);
+				MessageBoxW(hwnd, L"אין עדכונים חדשים...", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION | MB_RTLREADING);
 			}
+			break;
+		case MENU_ADD_WORDS:
+			ShellExecuteW(NULL, L"OPEN", L"https://l.yehudae.net/6mPtxy", NULL, NULL, SW_SHOWNORMAL);
 			break;
 		case MENU_SITE_LINK:
 			ShellExecuteW(NULL, L"OPEN", L"https://l.yehudae.net/6mPtxy", NULL, NULL, SW_SHOWNORMAL);
@@ -272,7 +277,7 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 			ShellExecuteW(NULL, L"OPEN", L"https://l.yehudae.net/IOpKTA", NULL, NULL, SW_SHOWNORMAL);
 			break;
 		case MENU_ABOUT:
-			MessageBoxW(NULL, L"התוכנה נוצרה באמצעות פרוייקט פיתוחי חותם", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION | MB_RTLREADING);
+			MessageBoxW(NULL, L"התוכנה פותחה ע\"י פיתוחי חותם", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION | MB_RTLREADING);
 			break;
 		case MENU_EXIT:
 			PostQuitMessage(0);
@@ -314,12 +319,14 @@ tbbd_status_t TBBD::GetServerVersion(LPWSTR CurrentVersion, DWORD size) {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	PCHAR tmpServerVersion = NULL;
 
-	tmpServerVersion = (PCHAR)HeapAlloc(GetProcessHeap(), 0, (size + 1));
+	tmpServerVersion = (PCHAR)HeapAlloc(GetProcessHeap(), 0, size);
 	if (NULL == tmpServerVersion)
 	{
 		status = TBBD_STATUS_HEAPALLOC_FAILED;
 		goto l_cleanup;
 	}
+
+	ZeroMemory(tmpServerVersion, size);
 
 	status = http_get(SERVER_DOMAIN, SERVER_VERSION_PATH, (PBYTE)tmpServerVersion, size);
 	if (TBBD_STATUS_SUCCESS != status) {
@@ -397,12 +404,14 @@ tbbd_status_t TBBD::GetServerLastUpdateHebDate(LPWSTR LastUpdateHebDate, DWORD s
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	PCHAR tmpLastUpdateHebDate = NULL;
 
-	tmpLastUpdateHebDate = (PCHAR)HeapAlloc(GetProcessHeap(), 0, (size + 1));
+	tmpLastUpdateHebDate = (PCHAR)HeapAlloc(GetProcessHeap(), 0, size);
 	if (NULL == tmpLastUpdateHebDate)
 	{
 		status = TBBD_STATUS_HEAPALLOC_FAILED;
 		goto l_cleanup;
 	}
+
+	ZeroMemory(tmpLastUpdateHebDate, size);
 
 	status = http_get(SERVER_DOMAIN, LAST_UPDATE_HEBREW_DATE_PATH, (PBYTE)tmpLastUpdateHebDate, size);
 	if (TBBD_STATUS_SUCCESS != status) {
@@ -445,6 +454,34 @@ tbbd_status_t TBBD::Install() {
 		}
 	}
 	else if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	status = InstallExeToAppdata();
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+	status = InstallScheduleTask();
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	if (!SUCCEEDED(StringCchCopyExW(this->CurrentVersion, (VERSION_STRING_LENGTH / sizeof(this->CurrentVersion[0])), this->ServerVersion, NULL, NULL, 0))) {
+		status = TBBD_STATUS_STRINGCCHCOPYEXW_FAILED;
+		goto l_cleanup;
+	}
+
+	if (!SUCCEEDED(StringCchCopyExW(this->CurrentLastUpdateDate, (LAST_UPDATE_DATE_STRING_LENGTH / sizeof(this->CurrentLastUpdateDate[0])), this->ServerLastUpdateDate, NULL, NULL, 0))) {
+		status = TBBD_STATUS_STRINGCCHCOPYEXW_FAILED;
+		goto l_cleanup;
+	}
+
+	status = SetCurrentVersion(this->CurrentVersion);
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+	status = SetLastUpdateHebDate(this->CurrentLastUpdateDate);
+	if (TBBD_STATUS_SUCCESS != status) {
 		goto l_cleanup;
 	}
 
@@ -560,27 +597,6 @@ tbbd_status_t TBBD::TryToCreateRegistrys(LPCWCHAR regex, LPCWCHAR prefix, LPCWCH
 		tmpPointer = s.c_str();
 		if (ERROR_SUCCESS != RegSetValueExW(hKey, prefixRegistryName, 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)((s.length() + 1) * sizeof(WCHAR)))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
-			goto l_cleanup;
-		}
-
-		status = InstallExeToAppdata();
-		if (TBBD_STATUS_SUCCESS != status) {
-			goto l_cleanup;
-		}
-		status = InstallScheduleTask();
-		if (TBBD_STATUS_SUCCESS != status) {
-			goto l_cleanup;
-		}
-
-		memcpy(this->CurrentVersion, this->ServerVersion, (size_t)((VERSION_STRING_LENGTH) / sizeof(WCHAR)) + 1);
-		memcpy(this->CurrentLastUpdateDate, this->ServerLastUpdateDate, (size_t)((LAST_UPDATE_DATE_STRING_LENGTH) / sizeof(WCHAR)) + 1);
-
-		status = SetCurrentVersion(this->CurrentVersion);
-		if (TBBD_STATUS_SUCCESS != status) {
-			goto l_cleanup;
-		}
-		status = SetLastUpdateHebDate(this->CurrentLastUpdateDate);
-		if (TBBD_STATUS_SUCCESS != status) {
 			goto l_cleanup;
 		}
 	}
@@ -914,8 +930,15 @@ tbbd_status_t TBBD::Update() {
 		}
 	}
 
-	memcpy(this->CurrentVersion, this->ServerVersion, (size_t)((VERSION_STRING_LENGTH) / sizeof(WCHAR)) + 1);
-	memcpy(this->CurrentLastUpdateDate, this->ServerLastUpdateDate, (size_t)((LAST_UPDATE_DATE_STRING_LENGTH) / sizeof(WCHAR)) + 1);
+	if (!SUCCEEDED(StringCchCopyExW(this->CurrentVersion, (VERSION_STRING_LENGTH / sizeof(this->CurrentVersion[0])), this->ServerVersion, NULL, NULL, 0))) {
+		status = TBBD_STATUS_STRINGCCHCOPYEXW_FAILED;
+		goto l_cleanup;
+	}
+
+	if (!SUCCEEDED(StringCchCopyExW(this->CurrentLastUpdateDate, (LAST_UPDATE_DATE_STRING_LENGTH / sizeof(this->CurrentLastUpdateDate[0])), this->ServerLastUpdateDate, NULL, NULL, 0))) {
+		status = TBBD_STATUS_STRINGCCHCOPYEXW_FAILED;
+		goto l_cleanup;
+	}
 
 	status = SetCurrentVersion(this->CurrentVersion);
 	if (TBBD_STATUS_SUCCESS != status) {
@@ -989,7 +1012,7 @@ tbbd_status_t TBBD::checkForUpdates() {
 			if (TBBD_STATUS_SUCCESS != status) {
 				goto l_cleanup;
 			}
-			// MessageBoxW(NULL, L"המילון עודכן בהצלחה!", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION);
+			// MessageBoxW(NULL, L"המילון עודכן בהצלחה!", L"מילון הבייניש הגדול", MB_OK | MB_ICONINFORMATION | MB_RTLREADING);
 		}
 	}
 	else {

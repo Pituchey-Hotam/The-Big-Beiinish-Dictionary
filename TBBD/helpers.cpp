@@ -19,7 +19,7 @@ HWND MyCreateButton(HINSTANCE instance, HWND handle, LPCWSTR value, int x, int y
 	return CreateWindowExW(WS_EX_LAYOUTRTL | WS_EX_NOINHERITLAYOUT, L"BUTTON", value, WS_CHILD | (show ? WS_VISIBLE : 0) | BS_DEFPUSHBUTTON, x, y, width, height, handle, (HMENU)(id++), instance, NULL);
 }
 
-HWND MyCreateLable(HINSTANCE instance, HWND handle, LPCWSTR value, int x, int y, int width, int height, bool show) {
+HWND MyCreateLabel(HINSTANCE instance, HWND handle, LPCWSTR value, int x, int y, int width, int height, bool show) {
 	static DWORD id = 1;
 
 	return CreateWindowExW(WS_EX_LAYOUTRTL | WS_EX_NOINHERITLAYOUT, L"STATIC", value, WS_CHILD | (show ? WS_VISIBLE : 0), x, y, width, height, handle, (HMENU)(id++), instance, NULL);
