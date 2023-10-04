@@ -39,9 +39,11 @@ private:
 	tbbd_status_t SetLastUpdateHebDate(LPCWSTR LastUpdateHebDate);
 	tbbd_status_t CheckIfInstalled(BOOL& installed);
 	tbbd_status_t Install();
+	tbbd_status_t TryToCreateRegistrys(LPCWCHAR regex, LPCWCHAR prefix, LPCWCHAR prefixRegistryName);
 	tbbd_status_t InstallExeToAppdata();
 	tbbd_status_t InstallScheduleTask();
 	tbbd_status_t UnInstall();
+	tbbd_status_t TryToDeleteRegistrys(LPCWCHAR registryName);
 	tbbd_status_t UnInstallExeFromAppdata();
 	tbbd_status_t UnInstallScheduleTask();
 	tbbd_status_t Update();

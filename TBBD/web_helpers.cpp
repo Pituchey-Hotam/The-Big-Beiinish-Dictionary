@@ -75,10 +75,12 @@ tbbd_status_t http_get(LPCWCHAR domain, LPCWCHAR path, PBYTE response, DWORD res
 		goto l_cleanup;
 	}*/
 
-	if (FALSE == WinHttpReadData(request, (PVOID)response, response_size, NULL))
-	{
-		status = TBBD_STATUS_WAMIN_WINHTTPREADDATA_FAILED;
-		goto l_cleanup;
+	if (NULL != response && 0 != response_size) {
+		if (FALSE == WinHttpReadData(request, (PVOID)response, response_size, NULL))
+		{
+			status = TBBD_STATUS_WAMIN_WINHTTPREADDATA_FAILED;
+			goto l_cleanup;
+		}
 	}
 
 	status = TBBD_STATUS_SUCCESS;
