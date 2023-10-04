@@ -779,7 +779,7 @@ tbbd_status_t TBBD::UnInstallScheduleTask() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	STARTUPINFO si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
-	std::wstring command = L"schtasks.exe /delete /tn \"PitucheyHotam_TBBD_Update\"";
+	std::wstring command = L"schtasks.exe /delete /tn \"PitucheyHotam_TBBD_Update\" /f";
 
 	si.cb = sizeof(STARTUPINFO);
 
