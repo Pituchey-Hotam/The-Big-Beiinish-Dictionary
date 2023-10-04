@@ -124,6 +124,7 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 	HMENU hMenu = NULL;
 	MSG msg = { 0 };
 	HANDLE singlton = NULL;
+	HFONT hFont = NULL;
 
 	singlton = CreateMutexW(NULL, TRUE, L"TBBD_SINGLTON");
 	if (NULL == singlton) {
@@ -160,7 +161,7 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 		WS_OVERLAPPEDWINDOW & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME),
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		400, 180,
+		390, 180,
 		NULL, NULL, hInstance, NULL);
 	if (NULL == MainWindowHandle) {
 		status = TBBD_STATUS_CREATE_WINDOW_ERROR;
@@ -174,16 +175,27 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 	}
 	SetMenu(MainWindowHandle, hMenu);
 
+	hFont = CreateFontW(16, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, HEBREW_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
+	if (NULL == hFont) {
+		status = TBBD_STATUS_CREATEFONTW_FAILED;
+		goto l_cleanup;
+	}
 
-	ChangeStatusBotton = MyCreateButton(hInstance, MainWindowHandle, L"התקן את המילון", 120, 25, 130, 50);
-	RefrashBotton = MyCreateButton(hInstance, MainWindowHandle, L"עדכון את המילון", 250, 44, 130, 30, false);
-	versionLabel = MyCreateLabel(hInstance, MainWindowHandle, L"0.0.0", 290, 85, 300, 20);
-	lastUpdateDateLabel = MyCreateLabel(hInstance, MainWindowHandle, L"<התוכנה לא\nהותקנה>", 10, 45, 110, 40);
+	ChangeStatusBotton = MyCreateButton(hInstance, MainWindowHandle, L"התקן את המילון", 110, 25, 130, 50);
+	SendMessageW(ChangeStatusBotton, WM_SETFONT, WPARAM(hFont), TRUE);
+	RefrashBotton = MyCreateButton(hInstance, MainWindowHandle, L"עדכון את המילון", 240, 44, 130, 30, false);
+	SendMessageW(RefrashBotton, WM_SETFONT, WPARAM(hFont), TRUE);
+	versionLabel = MyCreateLabel(hInstance, MainWindowHandle, L"0.0.0", 280, 85, 300, 20);
+	SendMessageW(versionLabel, WM_SETFONT, WPARAM(hFont), TRUE);
+	lastUpdateDateLabel = MyCreateLabel(hInstance, MainWindowHandle, L"<התוכנה לא\nהותקנה>", 10, 45, 100, 40);
+	SendMessageW(lastUpdateDateLabel, WM_SETFONT, WPARAM(hFont), TRUE);
 	statusLabel = MyCreateLabel(hInstance, MainWindowHandle, L"סטטוס: לא מותקן", 135, 2, 100, 20);
-	(void)MyCreateLabel(hInstance, MainWindowHandle, L"בס\"ד", 5, 2, 30, 20);
-	(void)MyCreateLabel(hInstance, MainWindowHandle, L"תאריך העדכון:", 10, 25, 100, 20);
-	(void)MyCreateLabel(hInstance, MainWindowHandle, L"מילון הבייניש הגדול מאת פיתוחי חותם - גרסה", 30, 85, 260, 20);
-	(void)MyCreateLabel(hInstance, MainWindowHandle, L"מייל תמיכה: pituchey-hotam@yehudae.net", 50, 100, 300, 20);
+	SendMessageW(statusLabel, WM_SETFONT, WPARAM(hFont), TRUE);
+
+	SendMessageW(MyCreateLabel(hInstance, MainWindowHandle, L"בס\"ד", 5, 2, 30, 20), WM_SETFONT, WPARAM(hFont), TRUE);
+	SendMessageW(MyCreateLabel(hInstance, MainWindowHandle, L"תאריך העדכון:", 10, 25, 100, 20), WM_SETFONT, WPARAM(hFont), TRUE);
+	SendMessageW(MyCreateLabel(hInstance, MainWindowHandle, L"מילון הבייניש הגדול מאת פיתוחי חותם - גרסה", 45, 85, 235, 20), WM_SETFONT, WPARAM(hFont), TRUE);
+	SendMessageW(MyCreateLabel(hInstance, MainWindowHandle, L"מייל תמיכה: pituchey-hotam@yehudae.net", 65, 100, 300, 20), WM_SETFONT, WPARAM(hFont), TRUE);
 
 	if (softwareInstalled) {
 		SetWindowTextW(statusLabel, L"סטטוס: מותקן");
@@ -203,6 +215,10 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
+	if (NULL != hFont) {
+		DeleteObject(hFont);
+	}
+
 	if (NULL != wc.hInstance) {
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
 	}

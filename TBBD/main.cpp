@@ -42,6 +42,9 @@ l_cleanup:
 			if (TBBD_STATUS_WAMIN_WINHTTPSENDREQUEST_FAILED == status) {
 				MessageBoxW(NULL, L"תוכנת מילון הבייניש הגדול דורשת חיבור לאינטרנט כדי לפעול", L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
 			}
+			else if (TBBD_STATUS_THE_PROGRAM_ALREADY_OPEN == status) {
+				MessageBoxW(NULL, L"התוכנה כבר פתוחה...", L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
+			}
 			else {
 				wsprintfW(ErrorMessage, L"מספר שגיאה: %d\nאנא פנה לתמיכה.", (int)status);
 				MessageBoxW(NULL, ErrorMessage, L"שגיאה!", MB_OK | MB_ICONERROR | MB_RTLREADING);
