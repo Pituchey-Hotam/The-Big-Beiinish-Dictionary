@@ -422,12 +422,50 @@ l_cleanup:
 
 tbbd_status_t TBBD::Install() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	BOOL adalRegexNotFound = FALSE;
+
+	if (!SUCCEEDED(URLDownloadToFileW(nullptr, THE_DICTIONARY_URL, this->TBBDFilePath, 0, nullptr))) {
+		status = TBBD_STATUS_URLDOWNLOADTOFILEW_FAILED;
+		goto l_cleanup;
+	}
+
+	status = TryToCreateRegistrys(L"^(\\d+)_(.+)_ADAL_state$", L"_ADAL", L"PitucheyHotem_TBBD_ADAL_Prefix");
+	if (TBBD_STATUS_REGEX_NOT_FOUND == status) {
+		adalRegexNotFound = TRUE;
+	}
+	else if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	status = TryToCreateRegistrys(L"^(\\d+)_(.+)_LiveId_state$", L"_LiveId", L"PitucheyHotem_TBBD_LiveId_Prefix");
+	if (TBBD_STATUS_REGEX_NOT_FOUND == status) {
+		if (adalRegexNotFound) {
+			status = TBBD_STATUS_ADAL_AND_LIVEID_REGEX_NOT_FOUND;
+			goto l_cleanup;
+		}
+	}
+	else if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_INSTALL, NULL, 0);
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
+	return status;
+}
+
+tbbd_status_t TBBD::TryToCreateRegistrys(LPCWCHAR regex, LPCWCHAR prefix, LPCWCHAR prefixRegistryName) {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	HKEY hKey = NULL;
 	DWORD index = 0;
 	WCHAR keyName[MAX_PATH] = { 0 };
 	DWORD keyNameSize = MAX_PATH;
 	std::wstring s = L"";
-	std::wregex words_regex(L"^(\\d+)_(.+)_ADAL_state$");
+	std::wregex words_regex;
 	std::wsregex_iterator words_begin;
 	std::wsregex_iterator words_end;
 	std::wsmatch match;
@@ -439,10 +477,7 @@ tbbd_status_t TBBD::Install() {
 	BYTE tmpValue = 0;
 	const WCHAR* tmpPointer = NULL;
 
-	if (!SUCCEEDED(URLDownloadToFileW(nullptr, THE_DICTIONARY_URL, this->TBBDFilePath, 0, nullptr))) {
-		status = TBBD_STATUS_URLDOWNLOADTOFILEW_FAILED;
-		goto l_cleanup;
-	}
+	words_regex = std::wregex(regex);
 
 	if (ERROR_SUCCESS != RegOpenKeyExW(HKEY_CURRENT_USER, MASTER_REGISTRY_PATH, 0, KEY_READ | KEY_WRITE, &hKey)) {
 		status = TBBD_STATUS_REGOPENKEYEXW_ERROR;
@@ -494,7 +529,7 @@ tbbd_status_t TBBD::Install() {
 	if (regex_found) {
 		++maxId;
 		registryPrefix = std::to_wstring(maxId) + L"_" + registryName;
-		registryPrefix += L"_ADAL";
+		registryPrefix += prefix;
 
 		if (ERROR_SUCCESS != RegSetValueExW(hKey, (registryPrefix).c_str(), 0, REG_SZ, (const BYTE*)this->TBBDFilePath, sizeof(this->TBBDFilePath))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
@@ -523,7 +558,7 @@ tbbd_status_t TBBD::Install() {
 		}
 		s = registryPrefix;
 		tmpPointer = s.c_str();
-		if (ERROR_SUCCESS != RegSetValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)((s.length() + 1) * sizeof(WCHAR)))) {
+		if (ERROR_SUCCESS != RegSetValueExW(hKey, prefixRegistryName, 0, REG_SZ, (const BYTE*)(tmpPointer), (DWORD)((s.length() + 1) * sizeof(WCHAR)))) {
 			status = TBBD_STATUS_REGSETVALUEEXW_ERROR;
 			goto l_cleanup;
 		}
@@ -551,11 +586,6 @@ tbbd_status_t TBBD::Install() {
 	}
 	else {
 		status = TBBD_STATUS_REGEX_NOT_FOUND;
-		goto l_cleanup;
-	}
-
-	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_INSTALL, NULL, 0);
-	if (TBBD_STATUS_SUCCESS != status) {
 		goto l_cleanup;
 	}
 
@@ -687,48 +717,14 @@ l_cleanup:
 
 tbbd_status_t TBBD::UnInstall() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
-	HKEY hKey = NULL;
-	DWORD index = 0;
-	WCHAR registryValus[MAX_PATH] = { 0 };
-	DWORD registryValusSize = MAX_PATH;
-	std::wstring registryPrefix = L"";
 
-	if (ERROR_SUCCESS != RegOpenKeyExW(HKEY_CURRENT_USER, MASTER_REGISTRY_PATH, 0, KEY_READ | KEY_WRITE, &hKey)) {
-		status = TBBD_STATUS_REGOPENKEYEXW_ERROR;
+	status = TryToDeleteRegistrys(L"PitucheyHotem_TBBD_ADAL_Prefix");
+	if (TBBD_STATUS_SUCCESS != status) {
 		goto l_cleanup;
 	}
 
-	registryValusSize = MAX_PATH;
-	if (ERROR_SUCCESS != RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(registryValus), &registryValusSize)) {
-		status = TBBD_STATUS_REGQUERYVALUEEXW_ERROR;
-		goto l_cleanup;
-	}
-
-	registryPrefix = registryValus;
-
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix).c_str())) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
-		goto l_cleanup;
-	}
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_external").c_str())) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
-		goto l_cleanup;
-	}
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_roamed").c_str())) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
-		goto l_cleanup;
-	}
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_state").c_str())) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
-		goto l_cleanup;
-	}
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_culturetag").c_str())) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
-		goto l_cleanup;
-	}
-
-	if (ERROR_SUCCESS != RegDeleteValueW(hKey, L"PitucheyHotem_TBBD_Prefix")) {
-		status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+	status = TryToDeleteRegistrys(L"PitucheyHotem_TBBD_LiveId_Prefix");
+	if (TBBD_STATUS_SUCCESS != status) {
 		goto l_cleanup;
 	}
 
@@ -773,6 +769,60 @@ tbbd_status_t TBBD::UnInstall() {
 
 	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_UNINSTALL, NULL, 0);
 	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
+	status = TBBD_STATUS_SUCCESS;
+l_cleanup:
+	return status;
+}
+
+tbbd_status_t TBBD::TryToDeleteRegistrys(LPCWCHAR registryName) {
+	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	HKEY hKey = NULL;
+	WCHAR registryValus[MAX_PATH] = { 0 };
+	DWORD registryValusSize = MAX_PATH;
+	std::wstring registryPrefix = L"";
+	LSTATUS resStatus = -1;
+
+	if (ERROR_SUCCESS != RegOpenKeyExW(HKEY_CURRENT_USER, MASTER_REGISTRY_PATH, 0, KEY_READ | KEY_WRITE, &hKey)) {
+		status = TBBD_STATUS_REGOPENKEYEXW_ERROR;
+		goto l_cleanup;
+	}
+
+	registryValusSize = MAX_PATH;
+	resStatus = RegQueryValueExW(hKey, registryName, nullptr, nullptr, reinterpret_cast<LPBYTE>(registryValus), &registryValusSize);
+	if (ERROR_SUCCESS == resStatus) {
+		registryPrefix = registryValus;
+
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix).c_str())) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_external").c_str())) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_roamed").c_str())) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_state").c_str())) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, (registryPrefix + L"_culturetag").c_str())) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+
+		if (ERROR_SUCCESS != RegDeleteValueW(hKey, registryName)) {
+			status = TBBD_STATUS_REGDELETEKEYW_ERROR;
+			goto l_cleanup;
+		}
+	}
+	else if (ERROR_FILE_NOT_FOUND != resStatus) {
+		status = TBBD_STATUS_REGQUERYVALUEEXW_ERROR;
 		goto l_cleanup;
 	}
 
@@ -893,8 +943,7 @@ tbbd_status_t TBBD::CheckIfInstalled(BOOL& installed) {
 		goto l_cleanup;
 	}
 
-	res = RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(id), &size);
-
+	res = RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_ADAL_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(id), &size);
 	if (ERROR_SUCCESS == res) {
 		installed = TRUE;
 	}
@@ -904,6 +953,21 @@ tbbd_status_t TBBD::CheckIfInstalled(BOOL& installed) {
 		if (ERROR_FILE_NOT_FOUND != res) {
 			status = TBBD_STATUS_REGQUERYVALUEEXW_ERROR;
 			goto l_cleanup;
+		}
+	}
+
+	if (!installed) {
+		res = RegQueryValueExW(hKey, L"PitucheyHotem_TBBD_LiveId_Prefix", nullptr, nullptr, reinterpret_cast<LPBYTE>(id), &size);
+		if (ERROR_SUCCESS == res) {
+			installed = TRUE;
+		}
+		else {
+			installed = FALSE;
+
+			if (ERROR_FILE_NOT_FOUND != res) {
+				status = TBBD_STATUS_REGQUERYVALUEEXW_ERROR;
+				goto l_cleanup;
+			}
 		}
 	}
 
