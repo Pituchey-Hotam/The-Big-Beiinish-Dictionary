@@ -60,7 +60,7 @@ private:
 
 	HWND ChangeStatusBotton;
 	HWND RefrashBotton;
-	HWND versionLable;
-	HWND lastUpdateDateLable;
-	HWND statusLable;
+	HWND versionLabel;
+	HWND lastUpdateDateLabel;
+	HWND statusLabel;
 };
