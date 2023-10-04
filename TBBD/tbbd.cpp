@@ -554,6 +554,11 @@ tbbd_status_t TBBD::Install() {
 		goto l_cleanup;
 	}
 
+	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_INSTALL, NULL, 0);
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
 	if (NULL != hKey) {
@@ -662,7 +667,7 @@ tbbd_status_t TBBD::InstallExeToAppdata() {
 		status = TBBD_STATUS_GETMODULEFILENAMEW_FAILED;
 		goto l_cleanup;
 	}
-	
+
 	if (SHGetFolderPathW(NULL, CSIDL_APPDATA, NULL, 0, appDataPath) != S_OK) {
 		status = TBBD_STATUS_SHGETFOLDERPATHW_FAILED;
 		goto l_cleanup;
@@ -766,6 +771,11 @@ tbbd_status_t TBBD::UnInstall() {
 		goto l_cleanup;
 	}
 
+	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_UNINSTALL, NULL, 0);
+	if (TBBD_STATUS_SUCCESS != status) {
+		goto l_cleanup;
+	}
+
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
 	if (NULL != hKey) {
@@ -793,7 +803,7 @@ tbbd_status_t TBBD::UnInstallScheduleTask() {
 		status = TBBD_STATUS_CREATEPROCESSW_FAILED;
 		goto l_cleanup;
 	}
-	
+
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
 	return status;
@@ -839,6 +849,19 @@ tbbd_status_t TBBD::Update() {
 	if (!SUCCEEDED(URLDownloadToFileW(nullptr, THE_DICTIONARY_URL, this->TBBDFilePath, 0, nullptr))) {
 		status = TBBD_STATUS_URLDOWNLOADTOFILEW_FAILED;
 		goto l_cleanup;
+	}
+
+	if (NULL == this->RefrashBotton) {
+		status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_AUTO_UPDATE, NULL, 0);
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
+	}
+	else {
+		status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_MANUAL_UPDATE, NULL, 0);
+		if (TBBD_STATUS_SUCCESS != status) {
+			goto l_cleanup;
+		}
 	}
 
 	memcpy(this->CurrentVersion, this->ServerVersion, (size_t)((VERSION_STRING_LENGTH) / sizeof(WCHAR)) + 1);

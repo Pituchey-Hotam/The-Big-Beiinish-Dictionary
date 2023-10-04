@@ -15,6 +15,12 @@
 #define LAST_UPDATE_HEBREW_DATE_PATH L"/Pituchey-Hotam/The-Big-Beiinish-Dictionary/data/last-update-hebrew-date.txt"
 #define THE_DICTIONARY_URL L"https://raw.githubusercontent.com/Pituchey-Hotam/The-Big-Beiinish-Dictionary/data/TBBD.dic"
 
+#define STATISTICS_SERVER_DOMAIN L"yehudae.net"
+#define STATISTICS_SERVER_PATH_INSTALL L"/PitucheyHotam/tbbd.php?install"
+#define STATISTICS_SERVER_PATH_UNINSTALL L"/PitucheyHotam/tbbd.php?uninstall"
+#define STATISTICS_SERVER_PATH_MANUAL_UPDATE L"/PitucheyHotam/tbbd.php?manual-update"
+#define STATISTICS_SERVER_PATH_AUTO_UPDATE L"/PitucheyHotam/tbbd.php?auto-update"
+
 #define MASTER_REGISTRY_PATH L"SOFTWARE\\Microsoft\\Shared Tools\\Proofing Tools\\1.0\\Custom Dictionaries"
 #define CONFIG_DIR_PATH L"\\PitucheyHotam"
 #define THE_BBD_FILE_PATH L"\\PitucheyHotam\\מילון הבייניש הגדול - מאת פיתוחי חותם.dic"
