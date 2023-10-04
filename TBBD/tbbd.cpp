@@ -174,8 +174,8 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 	SetMenu(MainWindowHandle, hMenu);
 
 
-	ChangeStatusBotton = MyCreateButton(hInstance, MainWindowHandle, L"התקן את התוכנה", 120, 25, 130, 50);
-	RefrashBotton = MyCreateButton(hInstance, MainWindowHandle, L"רענן את התוכנה", 250, 44, 130, 30, false);
+	ChangeStatusBotton = MyCreateButton(hInstance, MainWindowHandle, L"התקן את המילון", 120, 25, 130, 50);
+	RefrashBotton = MyCreateButton(hInstance, MainWindowHandle, L"עדכון את המילון", 250, 44, 130, 30, false);
 	versionLable = MyCreateLable(hInstance, MainWindowHandle, L"0.0.0", 290, 85, 300, 20);
 	lastUpdateDateLable = MyCreateLable(hInstance, MainWindowHandle, L"<התוכנה לא\nהותקנה>", 10, 45, 110, 40);
 	statusLable = MyCreateLable(hInstance, MainWindowHandle, L"סטטוס: לא מותקן", 135, 2, 100, 20);
@@ -186,7 +186,7 @@ tbbd_status_t TBBD::run(HINSTANCE hInstance, int nCmdShow) {
 
 	if (softwareInstalled) {
 		SetWindowTextW(statusLable, L"סטטוס: מותקן");
-		SetWindowTextW(ChangeStatusBotton, L"הסר את התוכנה");
+		SetWindowTextW(ChangeStatusBotton, L"הסר את המילון");
 		SetWindowTextW(versionLable, this->CurrentVersion);
 		SetWindowTextW(lastUpdateDateLable, this->CurrentLastUpdateDate);
 		ShowWindow(RefrashBotton, SW_SHOW);
@@ -227,7 +227,7 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 					goto l_cleanup;
 				}
 				SetWindowTextW(statusLable, L"סטטוס: לא מותקן");
-				SetWindowTextW(ChangeStatusBotton, L"התקן את התוכנה");
+				SetWindowTextW(ChangeStatusBotton, L"התקן את המילון");
 				SetWindowTextW(versionLable, L"0.0.0");
 				SetWindowTextW(lastUpdateDateLable, L"<התוכנה לא\nהותקנה>");
 				ShowWindow(RefrashBotton, SW_HIDE);
@@ -240,7 +240,7 @@ LRESULT CALLBACK TBBD::CallbackHandler(HWND hwnd, UINT uMsg, WPARAM wParam, LPAR
 					goto l_cleanup;
 				}
 				SetWindowTextW(statusLable, L"סטטוס: מותקן");
-				SetWindowTextW(ChangeStatusBotton, L"הסר את התוכנה");
+				SetWindowTextW(ChangeStatusBotton, L"הסר את המילון");
 				SetWindowTextW(versionLable, this->CurrentVersion);
 				SetWindowTextW(lastUpdateDateLable, this->CurrentLastUpdateDate);
 				ShowWindow(RefrashBotton, SW_SHOW);
@@ -779,7 +779,7 @@ tbbd_status_t TBBD::UnInstallScheduleTask() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	STARTUPINFO si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
-	std::wstring command = L"schtasks.exe /delete /tn \"PitucheyHotam_TBBD_Update\"";
+	std::wstring command = L"schtasks.exe /delete /tn \"PitucheyHotam_TBBD_Update\" /f";
 
 	si.cb = sizeof(STARTUPINFO);
 
