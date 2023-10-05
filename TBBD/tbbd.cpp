@@ -28,6 +28,10 @@ LRESULT CALLBACK GlobalCallbackHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
 	return tbbd.CallbackHandler(hwnd, msg, wParam, lParam);
 }
 
+DWORD WINAPI GlobalNonBlokingSendStatistics(LPVOID lpParam) {
+	return (DWORD)http_get(STATISTICS_SERVER_DOMAIN, (LPCWCHAR)lpParam, NULL, 0);
+}
+
 TBBD::TBBD() :
 	ChangeStatusBotton(NULL), RefrashBotton(NULL), versionLabel(NULL), lastUpdateDateLabel(NULL), statusLabel(NULL),
 	ServerVersion(L""), CurrentVersion(L""), ServerLastUpdateDate(L""), CurrentLastUpdateDate(L""),
@@ -448,6 +452,8 @@ l_cleanup:
 tbbd_status_t TBBD::Install() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
 	BOOL adalRegexNotFound = FALSE;
+	HANDLE hThread = NULL;
+	DWORD threadId = 0;
 
 	if (!SUCCEEDED(URLDownloadToFileW(nullptr, THE_DICTIONARY_URL, this->TBBDFilePath, 0, nullptr))) {
 		status = TBBD_STATUS_URLDOWNLOADTOFILEW_FAILED;
@@ -501,10 +507,14 @@ tbbd_status_t TBBD::Install() {
 		goto l_cleanup;
 	}
 
-	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_INSTALL, NULL, 0);
-	if (TBBD_STATUS_SUCCESS != status) {
+	hThread = CreateThread(NULL, 0, GlobalNonBlokingSendStatistics, (LPVOID)STATISTICS_SERVER_PATH_INSTALL, 0, &threadId);
+
+	if (NULL == hThread) {
+		status = TBBD_STATUS_CREATETHREAD_FAILED;
 		goto l_cleanup;
 	}
+
+	CloseHandle(hThread);
 
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
@@ -749,6 +759,8 @@ l_cleanup:
 
 tbbd_status_t TBBD::UnInstall() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	HANDLE hThread = NULL;
+	DWORD threadId = 0;
 
 	status = TryToDeleteRegistrys(L"PitucheyHotem_TBBD_ADAL_Prefix");
 	if (TBBD_STATUS_SUCCESS != status) {
@@ -799,10 +811,14 @@ tbbd_status_t TBBD::UnInstall() {
 		goto l_cleanup;
 	}
 
-	status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_UNINSTALL, NULL, 0);
-	if (TBBD_STATUS_SUCCESS != status) {
+	hThread = CreateThread(NULL, 0, GlobalNonBlokingSendStatistics, (LPVOID)STATISTICS_SERVER_PATH_UNINSTALL, 0, &threadId);
+
+	if (NULL == hThread) {
+		status = TBBD_STATUS_CREATETHREAD_FAILED;
 		goto l_cleanup;
 	}
+
+	CloseHandle(hThread);
 
 	status = TBBD_STATUS_SUCCESS;
 l_cleanup:
@@ -920,6 +936,8 @@ l_cleanup:
 
 tbbd_status_t TBBD::Update() {
 	tbbd_status_t status = TBBD_STATUS_UNINITIALIZED;
+	HANDLE hThread = NULL;
+	DWORD threadId = 0;
 
 	if (!DeleteFileW(this->TBBDFilePath)) {
 		if (ERROR_FILE_NOT_FOUND != GetLastError()) {
@@ -934,17 +952,18 @@ tbbd_status_t TBBD::Update() {
 	}
 
 	if (NULL == this->RefrashBotton) {
-		status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_AUTO_UPDATE, NULL, 0);
-		if (TBBD_STATUS_SUCCESS != status) {
-			goto l_cleanup;
-		}
+		hThread = CreateThread(NULL, 0, GlobalNonBlokingSendStatistics, (LPVOID)STATISTICS_SERVER_PATH_AUTO_UPDATE, 0, &threadId);
 	}
 	else {
-		status = http_get(STATISTICS_SERVER_DOMAIN, STATISTICS_SERVER_PATH_MANUAL_UPDATE, NULL, 0);
-		if (TBBD_STATUS_SUCCESS != status) {
-			goto l_cleanup;
-		}
+		hThread = CreateThread(NULL, 0, GlobalNonBlokingSendStatistics, (LPVOID)STATISTICS_SERVER_PATH_MANUAL_UPDATE, 0, &threadId);
 	}
+
+	if (NULL == hThread) {
+		status = TBBD_STATUS_CREATETHREAD_FAILED;
+		goto l_cleanup;
+	}
+
+	CloseHandle(hThread);
 
 	if (!SUCCEEDED(StringCchCopyExW(this->CurrentVersion, (VERSION_STRING_LENGTH / sizeof(this->CurrentVersion[0])), this->ServerVersion, NULL, NULL, 0))) {
 		status = TBBD_STATUS_STRINGCCHCOPYEXW_FAILED;
